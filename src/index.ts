@@ -28,6 +28,36 @@ app.get("/api/transitions", (req: Request, res: Response) => {
   res.json(transitions);
 });
 
+const isTask = (task: ITask, tasks: ITask[]) => {
+  const initName = tasks.find((task) => task.isInitial === true)?.name;
+  const taskDependencies = new Map();
+  let isOrphanTask = false;
+  let isFinalTask = false;
+
+  let isAfterInit = false;
+  if (initName === task.name) isOrphanTask = true;
+  else {
+    transitions.forEach(({ from, to }) => {
+      if (isAfterInit || from === initName) {
+        if (from) {
+          taskDependencies.set(from, []);
+        }
+        taskDependencies.get(from).push(to);
+        if (to) {
+          if (!taskDependencies.has(to)) {
+            taskDependencies.set(to, []);
+          }
+        }
+        isAfterInit = true;
+      }
+    });
+    if (taskDependencies.has(task.name)) isOrphanTask = true;
+  }
+
+  if (task.isSelectedFrom === false) isFinalTask = true;
+  return [isOrphanTask, isFinalTask];
+};
+
 app.post("/api/tasks", (req: Request, res: Response) => {
   const { name, isSelectedFrom, isSelectedTo, isInitial, isFinal, isOrphan } =
     req.body;
@@ -43,7 +73,7 @@ app.post("/api/tasks", (req: Request, res: Response) => {
 
   tasks.push(newTask);
 
-  res.json(newTask);
+  res.json(tasks);
 });
 
 app.post("/api/transitions", (req: Request, res: Response) => {
@@ -55,9 +85,30 @@ app.post("/api/transitions", (req: Request, res: Response) => {
     to,
   };
 
+  if (
+    transitions.find((transition) => transition.name === name) ||
+    (name && name.trimEnd().length === 0) ||
+    !name
+  ) {
+    return;
+  }
+  tasks.map((task) =>{
+    task.isSelectedFrom = task.name === from;
+    task.isSelectedTo = task.name === to;
+  })
   transitions.push(newTransition);
 
-  res.json(newTransition);
+  res.json(transitions);
+});
+
+app.get("/api/tasks/updateall", (req: Request, res: Response) => {
+  tasks = tasks.map((task) => {
+    const [isOrphanTask, isFinalTask] = isTask(task, tasks);
+    task.isFinal = isFinalTask;
+    task.isOrphan = !isOrphanTask;
+    return task;
+  });
+  res.json(tasks)
 });
 
 app.put("/api/tasks/:index", (req, res) => {
@@ -70,17 +121,24 @@ app.put("/api/tasks/:index", (req, res) => {
     });
 
     tasks[taskIndex].isInitial = true;
-    res.json(tasks[taskIndex]);
   }
 
-  res.status(200).send("Task updated successfully");
+  res.json(tasks);
 });
 
 app.delete("/api/tasks/:taskName", (req, res) => {
   const taskName = req.params.taskName;
   tasks = tasks.filter((task) => task.name !== taskName);
 
-  res.sendStatus(204); // Send a "No Content" response to indicate success
+  res.json(tasks);
+});
+
+app.delete("/api/transitions/:transitionName", (req, res) => {
+  const transitionName = req.params.transitionName;
+  transitions = transitions.filter(
+    (transition) => transition.name !== transitionName
+  );
+  res.json(transitions);
 });
 
 app.listen(PORT, () => {
