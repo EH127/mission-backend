@@ -60,6 +60,29 @@ app.post("/api/transitions", (req: Request, res: Response) => {
   res.json(newTransition);
 });
 
+app.put("/api/tasks/:index", (req, res) => {
+  const taskIndex = req.params.index;
+  const updatedTask: ITask = req.body;
+
+  if (updatedTask.isInitial === true) {
+    tasks.map((task) => {
+      return (task.isInitial = false);
+    });
+
+    tasks[taskIndex].isInitial = true;
+    res.json(tasks[taskIndex]);
+  }
+
+  res.status(200).send("Task updated successfully");
+});
+
+app.delete("/api/tasks/:taskName", (req, res) => {
+  const taskName = req.params.taskName;
+  tasks = tasks.filter((task) => task.name !== taskName);
+
+  res.sendStatus(204); // Send a "No Content" response to indicate success
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
