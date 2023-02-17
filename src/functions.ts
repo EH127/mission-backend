@@ -31,8 +31,7 @@ export const isTask = (
     });
     if (taskDependencies.has(task.name)) isOrphanTask = false;
   }
-  if (task.isSelectedFrom === false) isFinalTask = false;
-  return [isOrphanTask, isFinalTask];
+  return isOrphanTask;
 };
 
 export const onDelete = (

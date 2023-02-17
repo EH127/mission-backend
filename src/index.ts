@@ -35,10 +35,6 @@ app.get("/api/tasks", (req: Request, res: Response) => {
   res.json(tasks);
 });
 
-app.get("/api/transitions", (req: Request, res: Response) => {
-  res.json(transitions);
-});
-
 app.post("/api/tasks", (req: Request, res: Response) => {
   const { name, isSelectedFrom, isSelectedTo, isInitial, isFinal, isOrphan } =
     req.body;
@@ -57,6 +53,44 @@ app.post("/api/tasks", (req: Request, res: Response) => {
   res.json(tasks);
 });
 
+app.put("/api/tasks/:index", (req, res) => {
+  const taskIndex = req.params.index;
+  const updatedTask: ITask = req.body;
+
+  if (updatedTask.isInitial === true) {
+    tasks.map((task) => {
+      return (task.isInitial = false);
+    });
+
+    tasks[taskIndex].isInitial = true;
+  }
+
+  tasks = tasks.map((task) => {
+    const isOrphanTask = funcs.isTask(task, tasks, transitions);
+    task.isFinal = !task.isSelectedFrom;
+    task.isOrphan = isOrphanTask;
+    return task;
+  });
+
+  res.json(tasks);
+});
+
+app.delete("/api/tasks/:taskName", (req, res) => {
+  const taskName = req.params.taskName;
+  const taskIndex = tasks.findIndex((task: ITask) => task.name === taskName);
+  if (taskIndex === select && select > 0) select -= 1;
+
+  const resault = funcs.onDelete(transitions, tasks, taskName);
+  tasks = resault.tasks;
+  transitions = resault.transitions;
+
+  res.json(tasks);
+});
+
+app.get("/api/transitions", (req: Request, res: Response) => {
+  res.json(transitions);
+});
+
 app.post("/api/transitions", (req: Request, res: Response) => {
   const { name, from, to } = req.body;
 
@@ -73,52 +107,23 @@ app.post("/api/transitions", (req: Request, res: Response) => {
   ) {
     return;
   }
-  tasks.map((task) => {
-    task.isSelectedFrom = task.name === from;
-    task.isSelectedTo = task.name === to;
-  });
+
   transitions.push(newTransition);
 
   tasks = tasks.map((task) => {
-    const [isOrphanTask, isFinalTask] = funcs.isTask(task, tasks, transitions);
-    task.isFinal = !isFinalTask;
+    if (task.name === from) task.isSelectedFrom = true;
+    if (task.name === to) task.isSelectedTo = true;
+    return task;
+  });
+  
+  tasks = tasks.map((task) => {
+    const isOrphanTask = funcs.isTask(task, tasks, transitions);
+    task.isFinal = !task.isSelectedFrom;
     task.isOrphan = isOrphanTask;
     return task;
   });
 
   res.json(transitions);
-});
-
-app.put("/api/tasks/:index", (req, res) => {
-  const taskIndex = req.params.index;
-  const updatedTask: ITask = req.body;
-
-  if (updatedTask.isInitial === true) {
-    tasks.map((task) => {
-      return (task.isInitial = false);
-    });
-
-    tasks[taskIndex].isInitial = true;
-  }
-
-  tasks = tasks.map((task) => {
-    const [isOrphanTask, isFinalTask] = funcs.isTask(task, tasks, transitions);
-    task.isFinal = !isFinalTask;
-    task.isOrphan = isOrphanTask;
-    return task;
-  });
-
-  res.json(tasks);
-});
-
-app.delete("/api/tasks/:taskName", (req, res) => {
-  const taskName = req.params.taskName;
-
-  const resault = funcs.onDelete(transitions, tasks, taskName);
-  tasks = resault.tasks;
-  transitions = resault.transitions;
-
-  res.json(tasks);
 });
 
 app.delete("/api/transitions/:transitionName", (req, res) => {
@@ -126,7 +131,23 @@ app.delete("/api/transitions/:transitionName", (req, res) => {
   transitions = transitions.filter(
     (transition) => transition.name !== transitionName
   );
+
+  tasks = tasks.map((task) => {
+    const isOrphanTask = funcs.isTask(task, tasks, transitions);
+    task.isFinal = !task.isSelectedFrom;
+    task.isOrphan = isOrphanTask;
+    return task;
+  });
+
   res.json(transitions);
+});
+
+app.get("/api/reset", (req, res) => {
+  tasks = [];
+  transitions = [];
+  select = 0;
+
+  res.status(200);
 });
 
 app.listen(PORT, () => {
