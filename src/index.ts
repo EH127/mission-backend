@@ -56,22 +56,22 @@ app.post("/api/tasks", (req: Request, res: Response) => {
 app.put("/api/tasks/:index", (req: Request, res: Response) => {
   const taskIndex = req.params.index;
   const updatedTask: ITask = req.body;
+  if (tasks.length > 0) {
+    if (updatedTask.isInitial === true) {
+      tasks.map((task) => {
+        return (task.isInitial = false);
+      });
 
-  if (updatedTask.isInitial === true) {
-    tasks.map((task) => {
-      return (task.isInitial = false);
+      tasks[taskIndex].isInitial = true;
+    }
+
+    tasks = tasks.map((task) => {
+      const isOrphanTask = funcs.isTask(task, tasks, transitions);
+      task.isFinal = !task.isSelectedFrom;
+      task.isOrphan = isOrphanTask;
+      return task;
     });
-
-    tasks[taskIndex].isInitial = true;
   }
-
-  tasks = tasks.map((task) => {
-    const isOrphanTask = funcs.isTask(task, tasks, transitions);
-    task.isFinal = !task.isSelectedFrom;
-    task.isOrphan = isOrphanTask;
-    return task;
-  });
-
   res.json(tasks);
 });
 
