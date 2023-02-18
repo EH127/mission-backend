@@ -6,7 +6,7 @@ import cors from "cors";
 import * as funcs from "./functions";
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 let tasks: ITask[] = [];
 let transitions: ITransition[] = [];
@@ -53,7 +53,7 @@ app.post("/api/tasks", (req: Request, res: Response) => {
   res.json(tasks);
 });
 
-app.put("/api/tasks/:index", (req, res) => {
+app.put("/api/tasks/:index", (req: Request, res: Response) => {
   const taskIndex = req.params.index;
   const updatedTask: ITask = req.body;
 
@@ -75,7 +75,7 @@ app.put("/api/tasks/:index", (req, res) => {
   res.json(tasks);
 });
 
-app.delete("/api/tasks/:taskName", (req, res) => {
+app.delete("/api/tasks/:taskName", (req: Request, res: Response) => {
   const taskName = req.params.taskName;
   const taskIndex = tasks.findIndex((task: ITask) => task.name === taskName);
   if (taskIndex === select && select > 0) select -= 1;
@@ -115,22 +115,6 @@ app.post("/api/transitions", (req: Request, res: Response) => {
     if (task.name === to) task.isSelectedTo = true;
     return task;
   });
-  
-  tasks = tasks.map((task) => {
-    const isOrphanTask = funcs.isTask(task, tasks, transitions);
-    task.isFinal = !task.isSelectedFrom;
-    task.isOrphan = isOrphanTask;
-    return task;
-  });
-
-  res.json(transitions);
-});
-
-app.delete("/api/transitions/:transitionName", (req, res) => {
-  const transitionName = req.params.transitionName;
-  transitions = transitions.filter(
-    (transition) => transition.name !== transitionName
-  );
 
   tasks = tasks.map((task) => {
     const isOrphanTask = funcs.isTask(task, tasks, transitions);
@@ -142,7 +126,26 @@ app.delete("/api/transitions/:transitionName", (req, res) => {
   res.json(transitions);
 });
 
-app.get("/api/reset", (req, res) => {
+app.delete(
+  "/api/transitions/:transitionName",
+  (req: Request, res: Response) => {
+    const transitionName = req.params.transitionName;
+    transitions = transitions.filter(
+      (transition) => transition.name !== transitionName
+    );
+
+    tasks = tasks.map((task) => {
+      const isOrphanTask = funcs.isTask(task, tasks, transitions);
+      task.isFinal = !task.isSelectedFrom;
+      task.isOrphan = isOrphanTask;
+      return task;
+    });
+
+    res.json(transitions);
+  }
+);
+
+app.get("/api/reset", (req: Request, res: Response) => {
   tasks = [];
   transitions = [];
   select = 0;
