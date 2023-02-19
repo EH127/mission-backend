@@ -23,3 +23,5 @@ Reset - in this route we can reset all the project routes
 ## Deployment
 
 The project is deployed using render.com and can be access by https://mission-backend.onrender.com/api/{router}
+
+Note: There is a way that the backend seens not responding, when this happen it will respond after aprox. 20 secunds
